@@ -1,0 +1,134 @@
+---
+title: "R Notebook"
+author: Shad, Edin
+date: "december 1, 2016"
+output: html_notebook
+---
+
+### Scientific methodology and preformance evaluation 
+# Winter School, ENS Lyon 
+
+
+We start with looking at the data provided on the web page: http://mescal.imag.fr/membres/arnaud.legrand/teaching/2013/M2R_EP_archive_quicksort.tgz
+
+We won't focus on the particular implemenation, although this is very important part of the experiment. We leave it for the future work. We rather analyse the data, as we would do if somebody would give us implementation as black boxes which we query. One way to think about this, is that we do not compare general which type of implementation works the best, but rather which out of three implementation is better for different sizes of arrays. So we turn towards the dereminig when we should use one of this three algorithm to get faster running times. 
+
+```{r}
+data = read.csv("archive_quicksort/measurements.csv")
+df = data.frame(data)
+plot(df)
+
+summary(df)
+```
+
+The above plot didn't say much. We observe that Size and Type are discrete variables and that Time should be assumed as continous. In order to see more, lets separate data according to the algorithm used. 
+
+```{r}
+library(ggplot2)
+ggplot(df, aes(x = Size, y = Time, colour = Type,  group = Type)) + geom_point() + ggtitle("Data corresponding to each algorithm")
+```
+Obsearvtions: sizes for which the algorithms were tested are quite scaered and we can not conclude much. If we would have just this data, we could try to fit linear regression for each of the algorithms. Even if the results of linear regresion turn out to be good, the assumtion that the running time behaves linearly is very weak and probably not true. In any way we do the linear regresion for data of each algorithm. Before that, we plot again data of each algorithm separetely just to see if they look linear.
+```{r, echo = FALSE}
+library(dplyr)
+library(broom)
+
+```
+
+```{r}
+para = df[df$Type == " Parallel",] 
+sequ = df[df$Type == " Sequential",]
+builtIn = df[df$Type == " Built-in",]
+
+ggplot(para, aes(x = Size, y= Time)) + geom_point(size = 0.7) + ggtitle("Plot for parallel algorithms.")
+```
+
+```{r}
+ggplot(sequ, aes(x = Size, y= Time)) + geom_point(size = 0.7) + ggtitle("Plot for sequential algorithms.")
+
+```
+
+
+```{r}
+ggplot(builtIn, aes(x = Size, y= Time)) + geom_point(size = 0.7) + ggtitle("Plot for built-in algorithms.")
+```
+With exception of one outlayer for parallel algorithm, we see that data reasemle a linear distribution.
+
+```{r}
+
+regp = lm(data = para, Time ~ Size)
+summary(regp)
+plot(x = para$Size,y = para$Time)
+abline(regp)
+```
+Results of linear fit for parallel algorithm seems quite strong for this data.
+
+```{r}
+
+regq = lm(data = sequ, Time ~ Size)
+summary(regq)
+par(mfrow~c(1,1))
+plot(x = sequ$Size,y = sequ$Time)
+abline(regq)
+
+
+```
+
+
+```{r}
+regb = lm(data = builtIn, Time ~ Size)
+summary(regb)
+par(mfrow~c(1,1))
+plot(x = builtIn$Size,y = builtIn$Time)
+abline(regb)
+```
+```{r}
+ggplot(df, aes(x = Size, y = Time, colour = Type,  group = Type)) + geom_point() + ggtitle("Data with regresion lines for each of algorithms") + geom_abline(intercept = coef(regp)["(Intercept)"], slope = coef(regp)["Size"], colour = "green" ) +geom_abline(intercept = coef(regq)["(Intercept)"], slope = coef(regq)["Size"], colour = "blue" ) + geom_abline(intercept = coef(regb)["(Intercept)"], slope = coef(regb)["Size"], colour = "red" )
+```
+`Under above assumptions, the parallel algorithm seems to outrun the other two algorithms for the arrays of size bigger than 250000 and that sequential and built-in algorithm are alsmost the same. From this data it is not reliable to say that sequential is overall better than built-in since the data set is small, and not well calibrated. One more problem of the current data is that we don't know how were they measured, on how many machines and what kind of machines. In order to imporve this, we generate new data sets using providede "black-boxes" and extend the data for sizes up to milion.
+```{r}
+dataEdin = read.csv("MyData/measurements.csv")
+dE = data.frame(dataEdin)
+summary(dE)
+```
+```{r}
+ggplot(dE, aes(x = Size, y = Time, colour = Type,  group = Type)) + geom_point() + ggtitle("Plot for different types of algorithms")
+```
+ We observe that the paralel algorithm shows very slow running time for smaller arrays. But it seems that it will be better after some big enough size. That is way we for the moment stop here, and try to get more data for the biggest sizes of arrays. But first, lets us see what happend with same procedure on different arhitecture. 
+
+```{r}
+dataShad = read.csv("ShadMeasurements.csv")
+dS = data.frame(dataShad)
+summary(dS)
+```
+```{r}
+ggplot(dS, aes(x = Size, y = Time, colour = Type,  group = Type)) + geom_point() + ggtitle("Plot for different types of algorithms(1m)")
+ggplot(dE, aes(x = Size, y = Time, colour = Type,  group = Type)) + geom_point() + ggtitle("Plot for different types of algorithms(1m)")
+
+ggplot(dS[dS$Type == " Sequential",],  aes(x = Size, y = Time, colour = Type,  group = Type)) + geom_point(colour="#619CFF") + ggtitle("Sequential algorithm on machine S (1m)")
+ggplot(dE[dE$Type == " Sequential",] , aes(x = Size, y = Time, colour = Type,  group = Type)) + geom_point(colour="#619CFF") + ggtitle("Sequential algorithm on machine E (1m")
+
+ggplot(dS[dS$Type == " Parallel",],  aes(x = Size, y = Time, colour = Type,  group = Type)) + geom_point(colour="#00BA38") + ggtitle("Parallel algorithm on machine S (1m")
+ggplot(dE[dE$Type == " Parallel",] , aes(x = Size, y = Time, colour = Type,  group = Type)) + geom_point(colour="#00BA38") + ggtitle("Parallel algorithm on machine E (1m")
+
+ggplot(dS[dS$Type == " Built-in",],  aes(x = Size, y = Time, colour = Type,  group = Type)) + geom_point(colour = "#F8766D") + ggtitle("Built-in  algorithm on machine S (1m)")
+ggplot(dE[dE$Type == " Built-in",] , aes(x = Size, y = Time, colour = Type,  group = Type)) + geom_point(colour = "#F8766D") + ggtitle("Built-in  algorithm on machine E (1m)")
+
+
+
+```
+
+We observe that in both cases the parallel algorithm doesn't follow linear scaling, while both sequential and built-in algorithm show linear increase of execution time with the size. We also decide that for better estimated we need to increase the maximum size. We move the maximum up to two milion.
+
+???? Guided by known expected running time of quicksort we prose the logarithmic-linear model. To get some more information and intuition about the proformances of each implementation of quicksort we extend the measurements for sizes up to two milion.
+
+```{r}
+dataEdin2 = read.csv("MyData2milion/measurements.csv")
+dE2 = data.frame(dataEdin2)
+summary(dE2)
+```
+We again plot it, to get more intution. 
+
+```{r}
+ggplot(dE2, aes(x = Size, y = Time, colour = Type,  group = Type)) + geom_point() + ggtitle("Plot for different types of algorithms (2 milion)")
+```
+
