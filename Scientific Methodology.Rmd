@@ -1,8 +1,10 @@
 ---
 title: "R Notebook"
-author: Shad, Edin
+author: "Shad, Edin"
 date: "december 1, 2016"
-output: html_notebook
+output:
+  html_document: default
+  html_notebook: default
 ---
 
 ### Scientific methodology and preformance evaluation 
