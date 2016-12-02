@@ -74,7 +74,7 @@ abline(regq)
 
 
 ```
-
+Linear fit for the sequential model
 
 ```{r}
 regb = lm(data = builtIn, Time ~ Size)
@@ -156,3 +156,30 @@ test <- function(x) {coef(regpS2log)["log(Size)"]*log(x) + coef(regpS2log)["(Int
 ggplot(dS2, aes(x = Size, y = Time, colour = Type,  group = Type)) + geom_point() + ggtitle("Data with regresion lines for each of algorithms") + stat_function(fun=test,color="green")
 ```
 
+```{r}
+test1 <- rbind(dS2, dE2)
+paraComb = test1[test1$Type == " Parallel",]
+regComb <- lm(data=paraComb, Time~log(Size))
+regLin <- lm(data=paraComb, Time~Size)
+summary(regLin)
+test <- function(x) {coef(regComb)["log(Size)"]*log(x) + coef(regComb)["(Intercept)"]}
+ggplot(test1, aes(x = Size, y = Time, colour = Type,  group = Type)) + geom_point(size=0.4) + ggtitle("Data with regresion lines for each of algorithms") + geom_smooth(data = subset(test1, Type == " Parallel"), method = "lm", formula = y ~ log(x)) + geom_smooth(data=subset(test1, Type == " Parallel"), method = "lm", formula = y~x)
+summary(regComb)
+
+
+```
+We combined the data from the two computers but it does not really make sense, as expected we obtain low R-squared values and p-values.
+```{r}
+regpS2test <- lm(data=paraS2, Time~Size)
+summary(regpS2test)
+regpS2t <- lm(data=paraS2, Time~log(Size)+Size)
+summary(regpS2t)
+```
+```{r}
+para2 = dS2[dS2$Type == "Parallel",]
+test <- function(x) {coef(regpS2t)["log(Size)"]*log(x) + coef(regpS2t)["(Intercept)"]+coef(regpS2t)["Size"]*x}
+ggplot(dS2, aes(x = Size, y = Time, colour = Type,  group = Type)) + geom_point() + ggtitle("Data with regresion lines for each of algorithms") + stat_function(fun=test,color="red") + geom_smooth(data=subset(dS2, Type == " Parallel"), method = "lm", formula = y~I(x*log(x))+x)
+regpS23 <- lm(data=paraS2, Time~I(log(Size)*Size)+Size)
+summary(regpS23)
+```
+The model xlog(x)+x provides a good fit for our data. Furthermore it also makes sense because we expect the model to behave like a O(xlog(x)) function where xlog(x) is the leading term. However we might have some other term who also dictates the running time of the function and changes the curve. For our model we chose this other term to be x which provides us with the green curve on the above plot. The model logx + x obtains better values but the model doesn't make sense and thus could just be a good model for this data (overfitting).
